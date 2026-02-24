@@ -1,34 +1,36 @@
 """Weekly and Monthly Reports API routes"""
-from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import List
+from flask import Blueprint, request, jsonify
 from datetime import date, datetime, timedelta
 from supabase import create_client, Client
 from ..config import settings
+from ..database import supabase_admin
 from ..services.calculations import CalculationEngine
+import asyncio
 
-router = APIRouter(prefix="/reports", tags=["Reports"])
-security = HTTPBearer()
+reports_bp = Blueprint('reports', __name__)
 
 
-def get_user_from_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+def get_supabase_client() -> Client:
+    """Get Supabase client"""
+    return create_client(settings.supabase_url, settings.supabase_anon_key)
+
+
+def get_user_from_token():
     """Extract user ID from JWT token"""
-    supabase = create_client(settings.supabase_url, settings.supabase_anon_key)
-    token = credentials.credentials
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None, jsonify({"detail": "Missing or invalid authorization header"}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase_client()
     
     try:
         user = supabase.auth.get_user(token)
         if not user.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
-        return user.user.id
+            return None, jsonify({"detail": "Invalid token"}), 401
+        return user.user.id, None, None
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+        return None, jsonify({"detail": "Invalid token"}), 401
 
 
 def convert_dates_to_strings(obj):
@@ -44,19 +46,19 @@ def convert_dates_to_strings(obj):
 
 # ============ WEEKLY REPORTS ============
 
-@router.get("/weekly/current")
-async def get_current_week_report(
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/weekly/current', methods=['GET'])
+def get_current_week_report():
     """Get current week's report (Monday-Sunday)"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     today = date.today()
     # Find Monday of current week
     monday = today - timedelta(days=today.weekday())
     
     engine = CalculationEngine(user_id)
-    report = await engine.run_weekly_calculations_strict(monday)
+    report = asyncio.run(engine.run_weekly_calculations_strict(monday))
     report = convert_dates_to_strings(report)
     
     # Save to database
@@ -84,19 +86,15 @@ async def get_current_week_report(
         'summary_text': report['summary_text']
     }, on_conflict='user_id,week_start').execute()
     
-    return report
+    return jsonify(report)
 
 
-@router.get("/weekly/{year}/{month}/{day}")
-async def get_week_report(
-    year: int,
-    month: int,
-    day: int,
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/weekly/<int:year>/<int:month>/<int:day>', methods=['GET'])
+def get_week_report(year, month, day):
     """Get report for a specific week (by providing any date in that week)"""
-    from ..database import supabase_admin
-    from datetime import timedelta
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     # The date provided is treated as any day in the week
     # We find the Monday of that week
@@ -104,39 +102,40 @@ async def get_week_report(
     monday = week_date - timedelta(days=week_date.weekday())
     
     engine = CalculationEngine(user_id)
-    report = await engine.run_weekly_calculations_strict(monday)
+    report = asyncio.run(engine.run_weekly_calculations_strict(monday))
     report = convert_dates_to_strings(report)
     
-    return report
+    return jsonify(report)
 
 
-@router.get("/weekly/")
-async def get_all_weekly_reports(
-    user_id: str = Depends(get_user_from_token),
-    limit: int = 12
-):
+@reports_bp.route('/weekly/', methods=['GET'])
+def get_all_weekly_reports():
     """Get all weekly reports"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    limit = int(request.args.get('limit', 12))
     
     response = supabase_admin.table('weekly_reports').select(
         '*'
     ).eq('user_id', user_id).order('week_start', desc=True).limit(limit).execute()
     
-    return response.data
+    return jsonify(response.data or [])
 
 
 # ============ MONTHLY REPORTS ============
 
-@router.get("/monthly/current")
-async def get_current_month_report(
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/monthly/current', methods=['GET'])
+def get_current_month_report():
     """Get current month's report"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     today = date.today()
     engine = CalculationEngine(user_id)
-    report = await engine.run_monthly_calculations_strict(today.year, today.month)
+    report = asyncio.run(engine.run_monthly_calculations_strict(today.year, today.month))
     report = convert_dates_to_strings(report)
     
     # Save to database
@@ -160,88 +159,90 @@ async def get_current_month_report(
         'summary_text': report['summary_text']
     }, on_conflict='user_id,month_start').execute()
     
-    return report
+    return jsonify(report)
 
 
-@router.get("/monthly/{year}/{month}")
-async def get_month_report(
-    year: int,
-    month: int,
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/monthly/<int:year>/<int:month>', methods=['GET'])
+def get_month_report(year, month):
     """Get report for a specific month"""
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
     engine = CalculationEngine(user_id)
-    report = await engine.run_monthly_calculations_strict(year, month)
+    report = asyncio.run(engine.run_monthly_calculations_strict(year, month))
     report = convert_dates_to_strings(report)
     
-    return report
+    return jsonify(report)
 
 
-@router.get("/monthly/")
-async def get_all_monthly_reports(
-    user_id: str = Depends(get_user_from_token),
-    limit: int = 12
-):
+@reports_bp.route('/monthly/', methods=['GET'])
+def get_all_monthly_reports():
     """Get all monthly reports"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    limit = int(request.args.get('limit', 12))
     
     response = supabase_admin.table('monthly_reports').select(
         '*'
     ).eq('user_id', user_id).order('month_start', desc=True).limit(limit).execute()
     
-    return response.data
+    return jsonify(response.data or [])
 
 
 # ============ STREAKS ============
 
-@router.get("/streaks")
-async def get_user_streak(
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/streaks', methods=['GET'])
+def get_user_streak():
     """Get user's current streak"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     engine = CalculationEngine(user_id)
-    streak_data = await engine.update_streak()
+    streak_data = asyncio.run(engine.update_streak())
     
-    return streak_data
+    return jsonify(streak_data)
 
 
-@router.post("/streaks/refresh")
-async def refresh_streak(
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/streaks/refresh', methods=['POST'])
+def refresh_streak():
     """Manually refresh user streak"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     engine = CalculationEngine(user_id)
-    streak_data = await engine.update_streak()
+    streak_data = asyncio.run(engine.update_streak())
     
-    return streak_data
+    return jsonify(streak_data)
 
 
 # ============ ADVANCED METRICS WITH DEFAULTS ============
 
-@router.get("/advanced-metrics")
-async def get_advanced_metrics_with_defaults(
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/advanced-metrics', methods=['GET'])
+def get_advanced_metrics_with_defaults():
     """Get advanced metrics with default values for empty states"""
-    engine = CalculationEngine(user_id)
-    metrics = await engine.get_advanced_metrics_with_defaults()
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
-    return metrics
+    engine = CalculationEngine(user_id)
+    metrics = asyncio.run(engine.get_advanced_metrics_with_defaults())
+    
+    return jsonify(metrics)
 
 
 # ============ GENERATE NOTIFICATIONS ============
 
-@router.post("/generate-notifications")
-async def generate_notifications(
-    user_id: str = Depends(get_user_from_token)
-):
+@reports_bp.route('/generate-notifications', methods=['POST'])
+def generate_notifications():
     """Generate notifications for weekly report, monthly report, etc."""
-    from ..database import supabase_admin
-    from datetime import timedelta
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     notifications_created = []
     today = date.today()
@@ -251,7 +252,7 @@ async def generate_notifications(
     if today.weekday() == 6:  # Sunday
         # Get current week report
         monday = today - timedelta(days=today.weekday())
-        report = await engine.run_weekly_calculations_strict(monday)
+        report = asyncio.run(engine.run_weekly_calculations_strict(monday))
         
         # Create notification
         notif_data = {
@@ -265,7 +266,7 @@ async def generate_notifications(
         notifications_created.append('weekly_report')
     
     # 2. Check for monthly report notification (last day of month)
-    if today.day == 28 or today.day == 29 or today.day == 30 or today.day == 31:
+    if today.day in [28, 29, 30, 31]:
         # Check if it's the last day of month
         if today.month == 12:
             next_month = date(today.year + 1, 1, 1)
@@ -274,7 +275,7 @@ async def generate_notifications(
         last_day = next_month - timedelta(days=1)
         
         if today == last_day:
-            report = await engine.run_monthly_calculations_strict(today.year, today.month)
+            report = asyncio.run(engine.run_monthly_calculations_strict(today.year, today.month))
             
             notif_data = {
                 'user_id': user_id,
@@ -288,11 +289,11 @@ async def generate_notifications(
     
     # 3. Check for missed day reminder (if yesterday was not logged)
     yesterday = today - timedelta(days=1)
-    check = supabase_admin.table('daily_logs').select('id').eq('user_id', user_id).eq('date', yesterday).execute()
+    check = supabase_admin.table('daily_logs').select('id').eq('user_id', user_id).eq('date', yesterday.isoformat()).execute()
     
     if not check.data:
         # Check if user usually logs
-        recent = supabase_admin.table('daily_logs').select('date').eq('user_id', user_id).gte('date', today - timedelta(days=7)).execute()
+        recent = supabase_admin.table('daily_logs').select('date').eq('user_id', user_id).gte('date', (today - timedelta(days=7)).isoformat()).execute()
         
         if recent.data and len(recent.data) >= 3:
             # User logs regularly but missed yesterday
@@ -307,7 +308,7 @@ async def generate_notifications(
             notifications_created.append('reminder')
     
     # 4. Check for streak milestones
-    streak = await engine.calculate_streak()
+    streak = asyncio.run(engine.calculate_streak())
     if streak['current_streak'] in [7, 14, 21, 30, 60, 90, 100, 180, 365]:
         notif_data = {
             'user_id': user_id,
@@ -319,7 +320,7 @@ async def generate_notifications(
         supabase_admin.table('notifications').insert(notif_data).execute()
         notifications_created.append('streak_milestone')
     
-    return {
+    return jsonify({
         'notifications_created': notifications_created,
         'message': f'Generated {len(notifications_created)} notification(s)'
-    }
+    })

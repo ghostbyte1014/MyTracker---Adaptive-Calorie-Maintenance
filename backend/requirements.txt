@@ -1,15 +1,15 @@
-# FastAPI and server
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-python-multipart==0.0.20
+# Flask and server
+flask==3.1.0
+flask-cors==5.0.0
+gunicorn==23.0.0
+python-dotenv==1.0.0
 
-# Supabase - use newer version with pre-built wheels
+# Supabase
 supabase==2.10.0
 httpx>=0.26.0,<0.28.0
 
-# Pydantic - use latest available version
+# Pydantic for validation
 pydantic==2.12.5
-pydantic-settings==2.7.1
 
 # JWT
 python-jose[cryptography]==3.3.0

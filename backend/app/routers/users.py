@@ -1,40 +1,41 @@
 """User Settings API routes"""
-from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from flask import Blueprint, request, jsonify
 from supabase import create_client, Client
 from ..config import settings
-from ..schemas import UserSettingsCreate, UserSettingsUpdate, UserSettingsResponse
+from ..database import supabase_admin
 
-router = APIRouter(prefix="/users", tags=["Users"])
-security = HTTPBearer()
+users_bp = Blueprint('users', __name__)
 
 
-def get_user_from_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+def get_supabase_client() -> Client:
+    """Get Supabase client"""
+    return create_client(settings.supabase_url, settings.supabase_anon_key)
+
+
+def get_user_from_token():
     """Extract user ID from JWT token"""
-    supabase = create_client(settings.supabase_url, settings.supabase_anon_key)
-    token = credentials.credentials
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None, jsonify({"detail": "Missing or invalid authorization header"}), 401
+    
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase_client()
     
     try:
         user = supabase.auth.get_user(token)
         if not user.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
-        return user.user.id
+            return None, jsonify({"detail": "Invalid token"}), 401
+        return user.user.id, None, None
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+        return None, jsonify({"detail": "Invalid token"}), 401
 
 
-@router.get("/settings", response_model=UserSettingsResponse)
-async def get_user_settings(
-    user_id: str = Depends(get_user_from_token)
-):
+@users_bp.route('/settings', methods=['GET'])
+def get_user_settings():
     """Get user's settings"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     response = supabase_admin.table('user_settings').select(
         '*'
@@ -53,23 +54,24 @@ async def get_user_settings(
         }
         response = supabase_admin.table('user_settings').insert(default_settings).execute()
     
-    return response.data[0]
+    return jsonify(response.data[0])
 
 
-@router.put("/settings", response_model=UserSettingsResponse)
-async def update_user_settings(
-    settings_update: UserSettingsUpdate,
-    user_id: str = Depends(get_user_from_token)
-):
+@users_bp.route('/settings', methods=['PUT'])
+def update_user_settings():
     """Update user's settings"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    data = request.get_json()
     
     # Check if settings exist
     existing = supabase_admin.table('user_settings').select(
         'id'
     ).eq('user_id', user_id).execute()
     
-    update_data = settings_update.model_dump(exclude_unset=True)
+    update_data = {k: v for k, v in data.items() if v is not None}
     
     if existing.data:
         # Update existing
@@ -82,21 +84,19 @@ async def update_user_settings(
         response = supabase_admin.table('user_settings').insert(update_data).execute()
     
     if not response.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to update settings"
-        )
+        return jsonify({"detail": "Failed to update settings"}), 400
     
-    return response.data[0]
+    return jsonify(response.data[0])
 
 
-@router.post("/settings/initialize")
-async def initialize_user_settings(
-    settings: UserSettingsCreate,
-    user_id: str = Depends(get_user_from_token)
-):
+@users_bp.route('/settings/initialize', methods=['POST'])
+def initialize_user_settings():
     """Initialize user settings with baseline data"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    data = request.get_json()
     
     # Check if already exists
     existing = supabase_admin.table('user_settings').select(
@@ -104,34 +104,29 @@ async def initialize_user_settings(
     ).eq('user_id', user_id).execute()
     
     if existing.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Settings already exist. Use PUT to update."
-        )
+        return jsonify({"detail": "Settings already exist. Use PUT to update."}), 400
     
-    settings_data = settings.model_dump()
+    settings_data = data.copy()
     settings_data['user_id'] = user_id
     settings_data['current_weight'] = settings_data.get('baseline_weight')
     
     response = supabase_admin.table('user_settings').insert(settings_data).execute()
     
     if not response.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to create settings"
-        )
+        return jsonify({"detail": "Failed to create settings"}), 400
     
-    return response.data[0]
+    return jsonify(response.data[0])
 
 
-@router.get("/notifications")
-async def get_notifications(
-    user_id: str = Depends(get_user_from_token),
-    unread_only: bool = False,
-    limit: int = 20
-):
+@users_bp.route('/notifications', methods=['GET'])
+def get_notifications():
     """Get user notifications"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+    limit = int(request.args.get('limit', 20))
     
     query = supabase_admin.table('notifications').select(
         '*'
@@ -142,16 +137,15 @@ async def get_notifications(
     
     response = query.order('created_at', desc=True).limit(limit).execute()
     
-    return response.data
+    return jsonify(response.data or [])
 
 
-@router.put("/notifications/{notification_id}/read")
-async def mark_notification_read(
-    notification_id: str,
-    user_id: str = Depends(get_user_from_token)
-):
+@users_bp.route('/notifications/<notification_id>/read', methods=['PUT'])
+def mark_notification_read(notification_id):
     """Mark a notification as read"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     # Verify ownership
     existing = supabase_admin.table('notifications').select(
@@ -159,27 +153,24 @@ async def mark_notification_read(
     ).eq('id', notification_id).eq('user_id', user_id).execute()
     
     if not existing.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found"
-        )
+        return jsonify({"detail": "Notification not found"}), 404
     
     supabase_admin.table('notifications').update(
         {'is_read': True}
     ).eq('id', notification_id).execute()
     
-    return {"message": "Notification marked as read"}
+    return jsonify({"message": "Notification marked as read"})
 
 
-@router.put("/notifications/read-all")
-async def mark_all_notifications_read(
-    user_id: str = Depends(get_user_from_token)
-):
+@users_bp.route('/notifications/read-all', methods=['PUT'])
+def mark_all_notifications_read():
     """Mark all notifications as read"""
-    from ..database import supabase_admin
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
     
     supabase_admin.table('notifications').update(
         {'is_read': True}
     ).eq('user_id', user_id).eq('is_read', False).execute()
     
-    return {"message": "All notifications marked as read"}
+    return jsonify({"message": "All notifications marked as read"})
