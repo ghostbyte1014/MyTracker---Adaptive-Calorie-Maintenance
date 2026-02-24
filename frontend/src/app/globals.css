@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 245, 245, 245;
+  --background-start-rgb: 15, 15, 15;
+  --background-end-rgb: 15, 15, 15;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      rgb(var(--background-start-rgb)),
+      rgb(var(--background-end-rgb))
+    );
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Dark card styles */
+.card {
+  @apply bg-dark-100 border border-dark-300 rounded-xl p-6 shadow-xl;
+}
+
+.card-gradient {
+  @apply bg-dark-100 border-0 rounded-2xl p-6 shadow-xl;
+  background: linear-gradient(135deg, rgba(23,23,23,1) 0%, rgba(15,15,15,1) 100%);
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-dark-100;
+}
+
+/* Metric badge styles */
+.metric-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.metric-badge-stable {
+  @apply bg-gold-900/50 text-gold-400 border border-gold-700;
+}
+
+.metric-badge-warning {
+  @apply bg-power-900/50 text-power-400 border border-power-700;
+}
+
+.metric-badge-danger {
+  @apply bg-power-900/50 text-power-400 border border-power-700;
+}
+
+/* Input styles - dark theme */
+.input-field {
+  @apply w-full px-4 py-3 border border-dark-300 bg-dark-200 rounded-xl focus:ring-2 focus:ring-gold-500 focus:border-transparent outline-none transition-all text-gray-100;
+}
+
+.input-label {
+  @apply block text-sm font-semibold text-gray-300 mb-2;
+}
+
+/* Button styles - masculine */
+.btn {
+  @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-gold-600 to-gold-700 text-white hover:from-gold-500 hover:to-gold-600 shadow-lg hover:shadow-xl hover:-translate-y-0.5;
+}
+
+.btn-secondary {
+  @apply bg-gradient-to-r from-steel-600 to-steel-700 text-white hover:from-steel-500 hover:to-steel-600 shadow-lg hover:shadow-xl hover:-translate-y-0.5;
+}
+
+.btn-success {
+  @apply bg-gradient-to-r from-gold-500 to-gold-600 text-white hover:from-gold-400 hover:to-gold-500 shadow-lg hover:shadow-xl hover:-translate-y-0.5;
+}
+
+.btn-power {
+  @apply bg-gradient-to-r from-power-500 to-power-600 text-white hover:from-power-400 hover:to-power-500 shadow-lg hover:shadow-xl hover:-translate-y-0.5;
+}
+
+/* Chart container */
+.chart-container {
+  @apply bg-dark-100 border border-dark-300 rounded-2xl p-5 shadow-xl;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-gold-400 via-gold-500 to-gold-300;
+}
+
+.gradient-text-steel {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-steel-300 to-steel-500;
+}
+
+/* Glass morphism effect - dark */
+.glass {
+  @apply bg-dark-100/80 backdrop-blur-lg border border-dark-300;
+}
+
+/* Glow effects - gold */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.glow-power {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Stat card with icon - dark theme */
+.stat-card {
+  @apply relative overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-dark-100 border border-dark-200;
+}
+
+.stat-card::before {
+  content: '';
+  @apply absolute top-0 right-0 w-24 h-24 rounded-full opacity-10;
+  background: currentColor;
+  transform: translate(30%, -30%);
+}
+
+.stat-card-gold {
+  @apply bg-gradient-to-br from-gold-900/30 to-gold-950/30 text-gold-400 border-gold-800;
+}
+
+.stat-card-power {
+  @apply bg-gradient-to-br from-power-900/30 to-power-950/30 text-power-400 border-power-800;
+}
+
+.stat-card-steel {
+  @apply bg-gradient-to-br from-steel-800/30 to-steel-900/30 text-steel-400 border-steel-700;
+}
+
+/* Progress bar styles */
+.progress-bar {
+  @apply h-2 rounded-full bg-dark-300 overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-500;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #d97706);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f0f0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Dark form inputs */
+input, textarea, select {
+  @apply bg-dark-200 border-dark-300 text-gray-100;
+}
+
+input::placeholder, textarea::placeholder {
+  @apply text-gray-500;
+}
+
+/* Dark table styles */
+table {
+  @apply w-full text-gray-300;
+}
+
+th {
+  @apply text-left py-3 px-4 border-b border-dark-300 font-semibold;
+}
+
+td {
+  @apply py-3 px-4 border-b border-dark-200;
+}
