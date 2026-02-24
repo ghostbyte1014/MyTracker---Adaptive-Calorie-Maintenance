@@ -1,15 +1,15 @@
 # FastAPI and server
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-python-multipart==0.0.9
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.20
 
-# Supabase
-supabase==2.3.4
-httpx==0.25.2
+# Supabase - use newer version with pre-built wheels
+supabase==2.10.0
+httpx==0.28.1
 
-# Pydantic
-pydantic==2.5.3
-pydantic-settings==2.1.0
+# Pydantic - use latest version with Python 3.14 support
+pydantic==2.27.2
+pydantic-settings==2.7.1
 
 # JWT
 python-jose[cryptography]==3.3.0
