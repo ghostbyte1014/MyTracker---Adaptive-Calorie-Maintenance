@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response validation"""
 from datetime import date, datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 
 
 # User Settings Schemas
@@ -33,7 +33,8 @@ class UserSettingsResponse(UserSettingsBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 # Daily Log Schemas
@@ -76,7 +77,8 @@ class DailyLogResponse(DailyLogBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 # System Metrics Schemas
@@ -115,7 +117,8 @@ class SystemMetricsResponse(SystemMetricsBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 # Notification Schemas
@@ -135,7 +138,8 @@ class NotificationResponse(NotificationBase):
     is_read: bool
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 
 # Auth Schemas
@@ -191,4 +195,5 @@ class MissedDayResponse(MissedDayBase):
     user_id: str
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True

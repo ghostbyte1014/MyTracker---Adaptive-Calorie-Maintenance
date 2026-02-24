@@ -1,13 +1,11 @@
 """Application configuration"""
 import os
 from typing import Optional
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
     """Application settings"""
-    
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     
     # Supabase settings
     supabase_url: str = ""
@@ -25,6 +23,9 @@ class Settings(BaseSettings):
     
     # CORS settings
     cors_origins: list = ["http://localhost:3000", "http://localhost:3001"]
+    
+    class Config:
+        env_file = ".env"
 
 
 settings = Settings()
