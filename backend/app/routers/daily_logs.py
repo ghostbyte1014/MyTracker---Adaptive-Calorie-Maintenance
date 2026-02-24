@@ -109,20 +109,26 @@ def create_daily_log():
     if existing.data:
         return jsonify({"detail": "Log already exists for this date. Use PUT to update."}), 400
     
-    # Calculate metrics
-    engine = CalculationEngine(user_id)
-    calculated = asyncio.run(engine.calculate_daily_metrics(data, date.fromisoformat(log_date) if isinstance(log_date, str) else log_date))
-    
-    # Prepare data
+    # Prepare data (without calculated metrics first)
     log_data = data.copy()
-    log_data.update(calculated)
     log_data['user_id'] = user_id
     
-    # Insert
+    # Insert the log first so rolling average can include it
     response = supabase_admin.table('daily_logs').insert(log_data).execute()
     
     if not response.data:
         return jsonify({"detail": "Failed to create log"}), 400
+    
+    # Now calculate metrics AFTER insertion (so rolling avg includes this log)
+    target_date = log_date
+    engine = CalculationEngine(user_id)
+    calculated = asyncio.run(engine.calculate_daily_metrics(data, date.fromisoformat(target_date) if isinstance(target_date, str) else target_date))
+    
+    # Update the log with calculated metrics
+    supabase_admin.table('daily_logs').update(calculated).eq('id', response.data[0]['id']).execute()
+    
+    # Get the updated log to return
+    updated_response = supabase_admin.table('daily_logs').select('*').eq('id', response.data[0]['id']).execute()
     
     # Update user current weight if provided
     if data.get('bodyweight'):
@@ -130,7 +136,7 @@ def create_daily_log():
             'current_weight': data.get('bodyweight')
         }).eq('user_id', user_id).execute()
     
-    return jsonify(response.data[0])
+    return jsonify(updated_response.data[0])
 
 
 @daily_logs_bp.route('/<log_id>', methods=['PUT'])
@@ -156,25 +162,28 @@ def update_daily_log(log_id):
     current = supabase_admin.table('daily_logs').select('*').eq('id', log_id).execute()
     current_data = current.data[0] if current.data else {}
     
-    # Merge with update data
+    # Merge with update data first
     merged_data = {**current_data, **data}
     
-    # Recalculate metrics
-    engine = CalculationEngine(user_id)
-    calculated = asyncio.run(engine.calculate_daily_metrics(merged_data, target_date))
-    
-    update_data = data.copy()
-    update_data.update(calculated)
-    
-    # Update
+    # Update with the merged data first
     response = supabase_admin.table('daily_logs').update(
-        update_data
+        data
     ).eq('id', log_id).execute()
     
     if not response.data:
         return jsonify({"detail": "Failed to update log"}), 400
     
-    return jsonify(response.data[0])
+    # Now recalculate metrics AFTER update (so rolling avg includes updated data)
+    engine = CalculationEngine(user_id)
+    calculated = asyncio.run(engine.calculate_daily_metrics(merged_data, target_date))
+    
+    # Update with calculated metrics
+    supabase_admin.table('daily_logs').update(calculated).eq('id', log_id).execute()
+    
+    # Get the updated log to return
+    updated_response = supabase_admin.table('daily_logs').select('*').eq('id', log_id).execute()
+    
+    return jsonify(updated_response.data[0])
 
 
 @daily_logs_bp.route('/<log_id>', methods=['DELETE'])
