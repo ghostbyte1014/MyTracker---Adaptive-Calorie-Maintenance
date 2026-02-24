@@ -18,8 +18,11 @@ def create_app():
     # Configuration
     app.config['SECRET_KEY'] = settings.jwt_secret
     
-    # CORS
-    CORS(app, resources={r"/api/*": {"origins": settings.cors_origins}})
+    # CORS - allow all origins for production
+    if "*" in settings.cors_origins:
+        CORS(app, resources={r"/api/*": {"origins": "*"}})
+    else:
+        CORS(app, resources={r"/api/*": {"origins": settings.cors_origins}})
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')

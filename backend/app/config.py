@@ -16,13 +16,16 @@ class Settings:
     # JWT settings
     jwt_secret: str = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
     
-    # CORS settings
-    cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+    # CORS settings - allow all in production
+    cors_origins: str = os.getenv("CORS_ORIGINS", "*")
     
     def __init__(self):
         # Convert comma-separated origins to list
         if isinstance(self.cors_origins, str):
-            self.cors_origins = [origin.strip() for origin in self.cors_origins.split(',')]
+            if self.cors_origins == "*":
+                self.cors_origins = ["*"]
+            else:
+                self.cors_origins = [origin.strip() for origin in self.cors_origins.split(',')]
 
 
 settings = Settings()
