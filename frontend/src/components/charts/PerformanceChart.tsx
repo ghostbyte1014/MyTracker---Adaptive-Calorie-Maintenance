@@ -40,11 +40,11 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       {
         label: 'Workout Performance',
         data: sortedData.map((log) => log.workout_performance),
-        borderColor: '#000000',
+        borderColor: '#f59e0b',
         backgroundColor: 'transparent',
         tension: 0.3,
         pointRadius: 4,
-        pointBackgroundColor: '#000000',
+        pointBackgroundColor: '#f59e0b',
       },
       {
         label: 'Recovery Score',

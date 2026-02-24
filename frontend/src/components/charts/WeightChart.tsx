@@ -54,7 +54,7 @@ export function WeightChart({ data }: WeightChartProps) {
       {
         label: '7-Day Avg',
         data: sortedData.map((log) => log.rolling_7day_avg_weight),
-        borderColor: '#6b7280',
+        borderColor: '#f59e0b',
         backgroundColor: 'transparent',
         borderDash: [5, 5],
         tension: 0.3,

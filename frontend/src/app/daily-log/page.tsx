@@ -844,7 +844,7 @@ export default function DailyLogPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-dark-100 rounded-2xl border border-dark-200 w-full max-w-sm p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white tracking-wide">Calorie Calculator</h2>
+              <h2 className="text-xl font-bold text-white tracking-wide">Calculator</h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -890,16 +890,13 @@ export default function DailyLogPage() {
             </div>
 
             <Button
+              variant="ghost"
               onClick={() => {
-                setFormData(prev => ({
-                  ...prev,
-                  extra_calories: calcDisplay
-                }));
                 setShowCalculator(false);
               }}
-              className="w-full mt-4 btn-primary"
+              className="w-full mt-4 bg-dark-200 hover:bg-dark-300 text-white"
             >
-              Use Result as Extra Calories
+              Close
             </Button>
           </div>
         </div>

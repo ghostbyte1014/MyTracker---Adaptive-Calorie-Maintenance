@@ -38,7 +38,7 @@ export function CaloriesChart({ data }: CaloriesChartProps) {
       {
         label: 'Calories In',
         data: sortedData.map((log) => log.calories_intake),
-        backgroundColor: '#000000',
+        backgroundColor: '#f59e0b',
         borderRadius: 4,
       },
       {
