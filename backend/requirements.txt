@@ -7,8 +7,8 @@ python-multipart==0.0.20
 supabase==2.10.0
 httpx==0.28.1
 
-# Pydantic - use latest version with Python 3.14 support
-pydantic==2.27.2
+# Pydantic - use latest available version
+pydantic==2.12.5
 pydantic-settings==2.7.1
 
 # JWT
