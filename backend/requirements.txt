@@ -5,7 +5,7 @@ python-multipart==0.0.20
 
 # Supabase - use newer version with pre-built wheels
 supabase==2.10.0
-httpx==0.28.1
+httpx>=0.26.0,<0.28.0
 
 # Pydantic - use latest available version
 pydantic==2.12.5
