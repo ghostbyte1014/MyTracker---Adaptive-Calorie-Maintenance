@@ -347,8 +347,8 @@ export default function WeeklyMetricsPage() {
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                     <div className="text-center p-4 bg-dark-200 rounded-xl">
                       <p className="text-xs text-blue-400 uppercase font-bold mb-1">Avg Protein</p>
-                      <p className-bold text-white">
-="text-xl font                        {weeklyReport.avg_protein ? `${weeklyReport.avg_protein}g` : '-'}
+                      <p className="text-xl font-bold text-white">
+                        {weeklyReport.avg_protein ? `${weeklyReport.avg_protein}g` : '-'}
                       </p>
                     </div>
                     <div className="text-center p-4 bg-dark-200 rounded-xl">
