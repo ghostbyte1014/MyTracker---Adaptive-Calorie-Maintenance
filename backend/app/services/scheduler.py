@@ -4,6 +4,7 @@ from typing import List
 import asyncio
 from ..database import supabase_admin
 from .calculations import CalculationEngine
+from .trend_engine import TrendEngine
 
 
 class WeeklyScheduler:

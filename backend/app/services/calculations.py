@@ -389,6 +389,11 @@ class CalculationEngine:
         performance = [log['workout_performance'] for log in logs if log.get('workout_performance')]
         stress = [log['stress_level'] for log in logs if log.get('stress_level')]
         
+        # Macros - protein, carbs, fats
+        protein = [log['protein'] for log in logs if log.get('protein')]
+        carbs = [log['carbs'] for log in logs if log.get('carbs')]
+        fats = [log['fats'] for log in logs if log.get('fats')]
+        
         # Calculate averages
         avg_weight = round(statistics.mean(weights), 2) if weights else None
         avg_calories = round(statistics.mean(calories_intake)) if calories_intake else None
@@ -397,8 +402,16 @@ class CalculationEngine:
         avg_performance = round(statistics.mean(performance), 1) if performance else None
         avg_stress = round(statistics.mean(stress), 1) if stress else None
         
+        # Macros averages
+        avg_protein = round(statistics.mean(protein)) if protein else None
+        avg_carbs = round(statistics.mean(carbs)) if carbs else None
+        avg_fats = round(statistics.mean(fats)) if fats else None
+        
         total_cal_in = sum(calories_intake) if calories_intake else 0
         total_cal_burned = sum(calories_burned) if calories_burned else 0
+        total_protein = sum(protein) if protein else 0
+        total_carbs = sum(carbs) if carbs else 0
+        total_fats = sum(fats) if fats else 0
         
         # Get baseline for drift
         settings_response = supabase_admin.table('user_settings').select('baseline_weight').eq('user_id', self.user_id).execute()
@@ -474,6 +487,12 @@ class CalculationEngine:
             'avg_recovery': avg_recovery,
             'avg_performance': avg_performance,
             'avg_stress': avg_stress,
+            'avg_protein': avg_protein,
+            'avg_carbs': avg_carbs,
+            'avg_fats': avg_fats,
+            'total_protein': total_protein,
+            'total_carbs': total_carbs,
+            'total_fats': total_fats,
             'maintenance_estimate': maintenance_estimate,
             'calorie_adjustment': calorie_adjustment,
             'drift_status': drift_status,
@@ -525,6 +544,11 @@ class CalculationEngine:
         performance = [log['workout_performance'] for log in logs if log.get('workout_performance')]
         stress = [log['stress_level'] for log in logs if log.get('stress_level')]
         
+        # Macros - protein, carbs, fats
+        protein = [log['protein'] for log in logs if log.get('protein')]
+        carbs = [log['carbs'] for log in logs if log.get('carbs')]
+        fats = [log['fats'] for log in logs if log.get('fats')]
+        
         avg_weight = round(statistics.mean(weights), 2) if weights else None
         avg_calories = round(statistics.mean(calories_intake)) if calories_intake else None
         avg_sleep = round(statistics.mean(sleep), 1) if sleep else None
@@ -532,8 +556,16 @@ class CalculationEngine:
         avg_performance = round(statistics.mean(performance), 1) if performance else None
         avg_stress = round(statistics.mean(stress), 1) if stress else None
         
+        # Macros averages
+        avg_protein = round(statistics.mean(protein)) if protein else None
+        avg_carbs = round(statistics.mean(carbs)) if carbs else None
+        avg_fats = round(statistics.mean(fats)) if fats else None
+        
         total_cal_in = sum(calories_intake) if calories_intake else 0
         total_cal_burned = sum(calories_burned) if calories_burned else 0
+        total_protein = sum(protein) if protein else 0
+        total_carbs = sum(carbs) if carbs else 0
+        total_fats = sum(fats) if fats else 0
         
         # Get previous month for weight change
         if month == 1:
@@ -593,6 +625,12 @@ class CalculationEngine:
             'avg_recovery': avg_recovery,
             'avg_performance': avg_performance,
             'avg_stress': avg_stress,
+            'avg_protein': avg_protein,
+            'avg_carbs': avg_carbs,
+            'avg_fats': avg_fats,
+            'total_protein': total_protein,
+            'total_carbs': total_carbs,
+            'total_fats': total_fats,
             'maintenance_estimate': maintenance_estimate,
             'summary_text': summary_text
         }

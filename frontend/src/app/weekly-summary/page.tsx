@@ -39,6 +39,14 @@ interface WeekSummary {
   avgStress: number | null;
   totalCaloriesIn: number;
   totalCaloriesBurned: number;
+  // Macros
+  avgProtein: number | null;
+  avgCarbs: number | null;
+  avgFats: number | null;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFats: number;
+  // End Macros
   missedDays: number;
   missedDates: string[];
 }
@@ -132,6 +140,10 @@ export default function WeeklySummaryPage() {
     const recovery = filteredLogs.filter(l => l.recovery_score !== null).map(l => l.recovery_score || 0);
     const performance = filteredLogs.filter(l => l.workout_performance !== null).map(l => l.workout_performance || 0);
     const stress = filteredLogs.filter(l => l.stress_level !== null).map(l => l.stress_level || 0);
+    // Macros
+    const protein = filteredLogs.filter(l => l.protein !== null).map(l => l.protein || 0);
+    const carbs = filteredLogs.filter(l => l.carbs !== null).map(l => l.carbs || 0);
+    const fats = filteredLogs.filter(l => l.fats !== null).map(l => l.fats || 0);
 
     // Calculate weight change (first to last logged weight)
     const sortedByDate = [...filteredLogs].sort((a, b) => 
@@ -155,6 +167,14 @@ export default function WeeklySummaryPage() {
       avgStress: stress.length > 0 ? stress.reduce((a, b) => a + b, 0) / stress.length : null,
       totalCaloriesIn: calories.reduce((a, b) => a + b, 0),
       totalCaloriesBurned: filteredLogs.reduce((a, b) => a + b.calories_burned, 0),
+      // Macros
+      avgProtein: protein.length > 0 ? Math.round(protein.reduce((a, b) => a + b, 0) / protein.length) : null,
+      avgCarbs: carbs.length > 0 ? Math.round(carbs.reduce((a, b) => a + b, 0) / carbs.length) : null,
+      avgFats: fats.length > 0 ? Math.round(fats.reduce((a, b) => a + b, 0) / fats.length) : null,
+      totalProtein: protein.reduce((a, b) => a + b, 0),
+      totalCarbs: carbs.reduce((a, b) => a + b, 0),
+      totalFats: fats.reduce((a, b) => a + b, 0),
+      // End Macros
       missedDays: missedDates.length,
       missedDates
     });
@@ -391,6 +411,60 @@ export default function WeeklySummaryPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Macros Section */}
+            {(summary.avgProtein || summary.avgCarbs || summary.avgFats) && (
+              <Card className="mb-8 bg-dark-100 border-dark-200">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-steel-500 to-steel-600 flex items-center justify-center">
+                      <Dumbbell className="w-4 h-4 text-white" />
+                    </div>
+                    <CardTitle className="text-lg font-bold text-white tracking-wide">MACROS SUMMARY</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                    <div className="text-center p-4 bg-dark-200 rounded-xl">
+                      <p className="text-xs text-blue-400 uppercase font-bold mb-1">Avg Protein</p>
+                      <p className="text-xl font-bold text-white">
+                        {summary.avgProtein ? `${summary.avgProtein}g` : '-'}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-dark-200 rounded-xl">
+                      <p className="text-xs text-blue-400 uppercase font-bold mb-1">Total Protein</p>
+                      <p className="text-xl font-bold text-white">
+                        {summary.totalProtein ? `${summary.totalProtein}g` : '-'}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-dark-200 rounded-xl">
+                      <p className="text-xs text-yellow-400 uppercase font-bold mb-1">Avg Carbs</p>
+                      <p className="text-xl font-bold text-white">
+                        {summary.avgCarbs ? `${summary.avgCarbs}g` : '-'}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-dark-200 rounded-xl">
+                      <p className="text-xs text-yellow-400 uppercase font-bold mb-1">Total Carbs</p>
+                      <p className="text-xl font-bold text-white">
+                        {summary.totalCarbs ? `${summary.totalCarbs}g` : '-'}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-dark-200 rounded-xl">
+                      <p className="text-xs text-red-400 uppercase font-bold mb-1">Avg Fats</p>
+                      <p className="text-xl font-bold text-white">
+                        {summary.avgFats ? `${summary.avgFats}g` : '-'}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-dark-200 rounded-xl">
+                      <p className="text-xs text-red-400 uppercase font-bold mb-1">Total Fats</p>
+                      <p className="text-xl font-bold text-white">
+                        {summary.totalFats ? `${summary.totalFats}g` : '-'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Daily Ratings Section */}
             <Card className="mb-8 bg-dark-100 border-dark-200">

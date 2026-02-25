@@ -83,7 +83,14 @@ def get_current_week_report():
         'drift_status': report['drift_status'],
         'performance_correlation': report['performance_correlation'],
         'fatigue_risk_index': report['fatigue_risk_index'],
-        'summary_text': report['summary_text']
+        'summary_text': report['summary_text'],
+        # Macros
+        'avg_protein': report.get('avg_protein'),
+        'avg_carbs': report.get('avg_carbs'),
+        'avg_fats': report.get('avg_fats'),
+        'total_protein': report.get('total_protein', 0),
+        'total_carbs': report.get('total_carbs', 0),
+        'total_fats': report.get('total_fats', 0),
     }, on_conflict='user_id,week_start').execute()
     
     return jsonify(report)
@@ -156,7 +163,14 @@ def get_current_month_report():
         'avg_performance': report['avg_performance'],
         'avg_stress': report['avg_stress'],
         'maintenance_estimate': report['maintenance_estimate'],
-        'summary_text': report['summary_text']
+        'summary_text': report['summary_text'],
+        # Macros
+        'avg_protein': report.get('avg_protein'),
+        'avg_carbs': report.get('avg_carbs'),
+        'avg_fats': report.get('avg_fats'),
+        'total_protein': report.get('total_protein', 0),
+        'total_carbs': report.get('total_carbs', 0),
+        'total_fats': report.get('total_fats', 0),
     }, on_conflict='user_id,month_start').execute()
     
     return jsonify(report)
@@ -293,7 +307,14 @@ def calculate_monthly_metrics():
         'avg_performance': report['avg_performance'],
         'avg_stress': report['avg_stress'],
         'maintenance_estimate': report['maintenance_estimate'],
-        'summary_text': report['summary_text']
+        'summary_text': report['summary_text'],
+        # Macros
+        'avg_protein': report.get('avg_protein'),
+        'avg_carbs': report.get('avg_carbs'),
+        'avg_fats': report.get('avg_fats'),
+        'total_protein': report.get('total_protein', 0),
+        'total_carbs': report.get('total_carbs', 0),
+        'total_fats': report.get('total_fats', 0),
     }
     
     supabase_admin.table('monthly_reports').upsert(report_data, on_conflict='user_id,month_start').execute()
