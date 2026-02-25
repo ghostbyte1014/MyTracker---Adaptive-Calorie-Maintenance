@@ -8,7 +8,8 @@ import {
   Settings, 
   History, 
   Bell,
-  Plus
+  Plus,
+  FileText
 } from 'lucide-react';
 
 interface FloatingActionBarProps {
@@ -21,6 +22,11 @@ const actions = [
     icon: Plus, 
     href: '/daily-log',
     primary: true 
+  },
+  { 
+    label: 'Notes', 
+    icon: FileText, 
+    href: '/notes' 
   },
   { 
     label: 'Weekly', 

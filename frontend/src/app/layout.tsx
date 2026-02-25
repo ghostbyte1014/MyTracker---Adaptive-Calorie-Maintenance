@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Signature } from '@/components/ui/Signature';
+import { Navigation } from '@/components/ui/Navigation';
 
 export const metadata: Metadata = {
   title: 'MyTracker - Adaptive Calorie Maintenance',
@@ -25,6 +26,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.svg" />
       </head>
       <body className="min-h-screen bg-dark-500 text-gray-900">
+        <Navigation />
         {children}
         <Signature />
       </body>

@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
-import { DailyLog, SystemMetrics, MissedDay } from '@/types';
+import { notesApi } from '@/lib/api-notes';
+import { DailyLog, SystemMetrics, MissedDay, MealNote } from '@/types';
 import { formatNumber, formatCalories } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -18,9 +19,10 @@ import {
   Moon,
   Activity as ActivityIcon,
   Trash2,
+  FileText,
 } from 'lucide-react';
 
-type TabType = 'logs' | 'metrics' | 'missed';
+type TabType = 'logs' | 'metrics' | 'missed' | 'notes';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -29,6 +31,7 @@ export default function HistoryPage() {
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics[]>([]);
   const [missedDaysList, setMissedDaysList] = useState<MissedDay[]>([]);
+  const [mealNotes, setMealNotes] = useState<MealNote[]>([]);
 
   useEffect(() => {
     loadData();
@@ -36,14 +39,16 @@ export default function HistoryPage() {
 
   const loadData = async () => {
     try {
-      const [logs, metrics, missed] = await Promise.all([
+      const [logs, metrics, missed, notes] = await Promise.all([
         api.getDailyLogs({ limit: 90 }),
         api.getSystemMetrics(52),
         api.getMissedDays(),
+        notesApi.getNotes(90),
       ]);
       setDailyLogs(logs);
       setSystemMetrics(metrics);
       setMissedDaysList(missed);
+      setMealNotes(notes);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -65,10 +70,24 @@ export default function HistoryPage() {
     if (!confirm('Are you sure you want to delete this missed day?')) return;
     try {
       await api.deleteMissedDay(missedDayId);
-      setMissedDaysList((prev) => prev.filter((m) => m.id !== missedDayId));
+      setMissedDaysList((prev) => prev.filter((m) => m.id !== m.id));
     } catch (error) {
       console.error('Failed to delete missed day:', error);
     }
+  };
+
+  const handleDeleteNote = async (noteDate: string) => {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+    try {
+      await notesApi.deleteNote(noteDate);
+      setMealNotes((prev) => prev.filter((n) => n.log_date !== noteDate));
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+    }
+  };
+
+  const handleNoteClick = (noteDate: string) => {
+    router.push(`/notes?date=${noteDate}`);
   };
 
   const formatDate = (dateStr: string) => {
@@ -77,6 +96,11 @@ export default function HistoryPage() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const getSnippet = (content: string, maxLength: number = 130) => {
+    if (content.length <= maxLength) return content;
+    return content.substring(0, maxLength) + '...';
   };
 
   if (loading) {
@@ -119,8 +143,8 @@ export default function HistoryPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(['logs', 'metrics', 'missed'] as TabType[]).map((tab) => (
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {(['logs', 'metrics', 'missed', 'notes'] as TabType[]).map((tab) => (
             <Button
               key={tab}
               variant={activeTab === tab ? 'primary' : 'outline'}
@@ -133,6 +157,7 @@ export default function HistoryPage() {
               {tab === 'logs' && 'DAILY LOGS'}
               {tab === 'metrics' && 'WEEKLY METRICS'}
               {tab === 'missed' && 'MISSED DAYS'}
+              {tab === 'notes' && 'NOTES'}
             </Button>
           ))}
         </div>
@@ -297,6 +322,47 @@ export default function HistoryPage() {
                         size="sm"
                         onClick={() => handleDeleteMissedDay(missed.id)}
                         className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Notes Tab */}
+        {activeTab === 'notes' && (
+          <div className="space-y-4">
+            {mealNotes.length === 0 ? (
+              <Card className="bg-dark-100 border-dark-200">
+                <CardContent className="py-12 text-center">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                  <p className="text-gray-400 text-lg">No meal notes recorded yet.</p>
+                  <p className="text-gray-500 text-sm">Start writing from the Notes tab.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              mealNotes.map((note) => (
+                <Card key={note.id} className="bg-dark-100 border-dark-200 card-hover">
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleNoteClick(note.log_date)}
+                      >
+                        <p className="text-gold-400 font-bold text-lg">{formatDate(note.log_date)}</p>
+                        <p className="text-gray-400 text-sm mt-2">
+                          {getSnippet(note.content)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteNote(note.log_date)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-900/30 ml-2"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

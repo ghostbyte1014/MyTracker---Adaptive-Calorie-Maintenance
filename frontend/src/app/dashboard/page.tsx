@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { MetricCard } from '@/components/ui/MetricCard';
-import { FloatingActionBar } from '@/components/ui/FloatingActionBar';
 import { Signature } from '@/components/ui/Signature';
 import { WeightChart } from '@/components/charts/WeightChart';
 import { CaloriesChart } from '@/components/charts/CaloriesChart';
@@ -129,7 +128,6 @@ export default function DashboardPage() {
     return latestMetrics.weight_change > 0 ? 'up' : latestMetrics.weight_change < 0 ? 'down' : 'stable';
   };
 
-  // Get target from profile settings (from profile)
   const targetFromProfile = settings?.initial_target_calories || 2000;
 
   if (loading) {
@@ -148,6 +146,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-dark-500">
+      {/* Original Dashboard Header */}
       <header className="bg-dark-200/90 backdrop-blur-lg border-b border-dark-300 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -204,7 +203,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Row 1: 7-Day Avg, Target, Maintenance, Weekly Adjustment */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <Card className="stat-card stat-card-gold">
             <CardContent className="pt-4">
@@ -228,7 +226,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* TARGET - FROM PROFILE SETTINGS */}
           <Card className="stat-card stat-card-gold">
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-gold-400 mb-2">
@@ -241,7 +238,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* MAINTENANCE - CALCULATED */}
           <Card className="stat-card stat-card-gold">
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-gold-400 mb-2">
@@ -267,7 +263,6 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Row 2: Status, Performance Correlation, Fatigue Risk, Streak */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="stat-card stat-card-steel">
             <CardContent className="pt-4">
@@ -305,7 +300,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* STREAK CARD */}
           <Card className="stat-card stat-card-gold">
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-gold-400 mb-2">
@@ -467,12 +461,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
-
       </main>
-
-      {/* Floating Bottom Quick Actions Bar */}
-      <FloatingActionBar />
     </div>
   );
 }
-

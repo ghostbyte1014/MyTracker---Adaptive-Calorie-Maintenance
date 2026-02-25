@@ -136,3 +136,17 @@ export interface MissedDayCreate {
   estimated_calories?: number;
   notes?: string;
 }
+
+export interface MealNote {
+  id: string;
+  user_id: string;
+  log_date: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MealNoteCreate {
+  log_date: string;
+  content: string;
+}

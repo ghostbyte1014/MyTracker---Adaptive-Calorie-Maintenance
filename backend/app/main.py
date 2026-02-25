@@ -9,11 +9,16 @@ from .routers.system_metrics import system_metrics_bp
 from .routers.users import users_bp
 from .routers.missed_days import missed_days_bp
 from .routers.reports import reports_bp
+from .routers.notes import notes_bp
 
 
 def create_app():
     """Application factory"""
     app = Flask(__name__)
+    
+    # Disable trailing slash redirect - important for CORS
+    # Flask defaults to redirecting /notes to /notes/ which breaks CORS preflight
+    app.url_map.strict_slashes = False
     
     # Configuration
     app.config['SECRET_KEY'] = settings.jwt_secret
@@ -31,6 +36,7 @@ def create_app():
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(missed_days_bp, url_prefix='/api/missed-days')
     app.register_blueprint(reports_bp, url_prefix='/api/reports')
+    app.register_blueprint(notes_bp, url_prefix='/api/notes')
     
     # Root endpoint
     @app.route('/')
