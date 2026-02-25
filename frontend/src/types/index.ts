@@ -74,8 +74,12 @@ export interface Notification {
   id: string;
   user_id: string;
   type: string;
+  category?: string;
+  severity?: 'low' | 'medium' | 'high';
   title: string;
   message: string | null;
+  reference_date?: string;
+  metadata?: Record<string, unknown>;
   is_read: boolean;
   created_at: string;
 }

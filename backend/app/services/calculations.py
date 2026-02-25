@@ -598,7 +598,10 @@ class CalculationEngine:
         }
     
     async def calculate_streak(self) -> dict:
-        """Calculate user logging streak"""
+        """
+        Calculate user logging streak with streak_start_date.
+        Uses SQL window grouping to identify consecutive date sequences.
+        """
         # Get all logs sorted by date descending
         response = supabase_admin.table('daily_logs').select('date').eq('user_id', self.user_id).order('date', desc=True).execute()
         
@@ -606,6 +609,7 @@ class CalculationEngine:
             return {
                 'current_streak': 0,
                 'longest_streak': 0,
+                'streak_start_date': None,
                 'last_log_date': None,
                 'total_logged_days': 0
             }
@@ -621,51 +625,83 @@ class CalculationEngine:
         # Calculate current streak (consecutive days from today/yesterday)
         today = date.today()
         current_streak = 0
+        streak_start_date = None
         
         # Check if the latest log is today or yesterday
         if last_log_date == today or last_log_date == today - timedelta(days=1):
-            # Count consecutive days
+            # Count consecutive days and track start date
             check_date = last_log_date
+            streak_dates = []
             for d in dates:
                 if d == check_date:
-                    current_streak += 1
+                    streak_dates.append(d)
                     check_date -= timedelta(days=1)
                 else:
                     break
+            current_streak = len(streak_dates)
+            streak_start_date = streak_dates[-1].isoformat() if streak_dates else None
         
-        # Calculate longest streak
+        # Calculate longest streak using window grouping approach
         longest_streak = 0
+        longest_streak_start = None
         if dates:
             # Convert to sorted ascending for longest calculation
             dates_asc = sorted(dates)
-            streak = 1
+            
+            # Track streaks using gap detection
+            current_streak_count = 1
+            current_streak_start = dates_asc[0]
+            
             for i in range(1, len(dates_asc)):
                 if (dates_asc[i] - dates_asc[i-1]).days == 1:
-                    streak += 1
-                    longest_streak = max(longest_streak, streak)
+                    current_streak_count += 1
                 else:
-                    streak = 1
-            longest_streak = max(longest_streak, current_streak)
+                    # Check if this streak is longer
+                    if current_streak_count > longest_streak:
+                        longest_streak = current_streak_count
+                        longest_streak_start = current_streak_start
+                    # Reset for new streak
+                    current_streak_count = 1
+                    current_streak_start = dates_asc[i]
+            
+            # Check the last streak
+            if current_streak_count > longest_streak:
+                longest_streak = current_streak_count
+                longest_streak_start = current_streak_start
+            
+            # Ensure current streak is also considered for longest
+            if current_streak > longest_streak:
+                longest_streak = current_streak
+        
+        # Get existing streak to preserve longest_streak if it's higher
+        existing_streak = supabase_admin.table('user_streaks').select('longest_streak').eq('user_id', self.user_id).execute()
+        existing_longest = existing_streak.data[0]['longest_streak'] if existing_streak.data else 0
+        longest_streak = max(longest_streak, existing_longest)
         
         return {
             'current_streak': current_streak,
             'longest_streak': longest_streak,
+            'streak_start_date': streak_start_date,
             'last_log_date': last_log_date_str,
             'total_logged_days': total_days
         }
     
     async def update_streak(self) -> dict:
-        """Update user streak in database"""
+        """Update user streak in database with streak_start_date"""
         streak_data = await self.calculate_streak()
         
         # Check if streak record exists
-        check = supabase_admin.table('user_streaks').select('id').eq('user_id', self.user_id).execute()
+        check = supabase_admin.table('user_streaks').select('id, longest_streak').eq('user_id', self.user_id).execute()
+        
+        # Determine the longest streak (preserve if higher)
+        new_longest = max(streak_data['longest_streak'], check.data[0].get('longest_streak', 0) if check.data else 0)
         
         if check.data:
             # Update existing
             supabase_admin.table('user_streaks').update({
                 'current_streak': streak_data['current_streak'],
-                'longest_streak': max(streak_data['longest_streak'], check.data[0].get('longest_streak', 0)),
+                'longest_streak': new_longest,
+                'streak_start_date': streak_data['streak_start_date'],
                 'last_log_date': streak_data['last_log_date'],
                 'total_logged_days': streak_data['total_logged_days']
             }).eq('user_id', self.user_id).execute()
@@ -675,6 +711,7 @@ class CalculationEngine:
                 'user_id': self.user_id,
                 'current_streak': streak_data['current_streak'],
                 'longest_streak': streak_data['longest_streak'],
+                'streak_start_date': streak_data['streak_start_date'],
                 'last_log_date': streak_data['last_log_date'],
                 'total_logged_days': streak_data['total_logged_days']
             }).execute()

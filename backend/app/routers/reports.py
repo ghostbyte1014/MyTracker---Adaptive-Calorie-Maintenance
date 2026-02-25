@@ -220,6 +220,87 @@ def refresh_streak():
     return jsonify(streak_data)
 
 
+# ============ MONTHLY METRICS CALCULATION ============
+
+@reports_bp.route('/calculate-monthly-metrics', methods=['POST'])
+def calculate_monthly_metrics():
+    """
+    Calculate and store monthly metrics.
+    POST body (optional): {"year": 2024, "month": 1} - defaults to current month
+    """
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    data = request.get_json() or {}
+    today = date.today()
+    year = data.get('year', today.year)
+    month = data.get('month', today.month)
+    
+    engine = CalculationEngine(user_id)
+    report = asyncio.run(engine.run_monthly_calculations_strict(year, month))
+    report = convert_dates_to_strings(report)
+    
+    month_start, month_end = engine.get_month_start_end(year, month)
+    weights_response = supabase_admin.table('daily_logs').select('bodyweight').eq('user_id', user_id).gte('date', month_start.isoformat()).lte('date', month_end.isoformat()).execute()
+    
+    import statistics
+    weights = [log['bodyweight'] for log in weights_response.data if log.get('bodyweight')]
+    weight_volatility = round(statistics.stdev(weights), 3) if len(weights) >= 2 else 0.0
+    
+    drift_status = "STABLE"
+    if report.get('weight_change') and abs(report['weight_change']) > 0.3:
+        drift_status = "WARNING"
+    
+    total_days = (month_end - month_start).days + 1
+    
+    metrics_data = {
+        'user_id': user_id,
+        'month_start': report['month_start'],
+        'avg_weight': report['avg_weight'],
+        'weight_change': report['weight_change'],
+        'weight_volatility': weight_volatility,
+        'drift_status': drift_status,
+        'total_logs': report['total_logs'],
+        'total_days': total_days,
+        'missed_days_count': report['missed_days'],
+        'avg_calories': report['avg_calories'],
+        'avg_sleep': report['avg_sleep'],
+        'avg_recovery': report['avg_recovery'],
+        'avg_performance': report['avg_performance'],
+        'avg_stress': report['avg_stress'],
+        'maintenance_estimate': report['maintenance_estimate'],
+        'total_calories_in': report['total_calories_in'],
+        'total_calories_burned': report['total_calories_burned']
+    }
+    
+    supabase_admin.table('monthly_metrics').upsert(metrics_data, on_conflict='user_id,month_start').execute()
+    
+    report_data = {
+        'user_id': user_id,
+        'month_start': report['month_start'],
+        'month_end': report['month_end'],
+        'avg_weight': report['avg_weight'],
+        'weight_change': report['weight_change'],
+        'total_logs': report['total_logs'],
+        'missed_days': report['missed_days'],
+        'missed_dates': report['missed_dates'],
+        'avg_calories': report['avg_calories'],
+        'total_calories_in': report['total_calories_in'],
+        'total_calories_burned': report['total_calories_burned'],
+        'avg_sleep': report['avg_sleep'],
+        'avg_recovery': report['avg_recovery'],
+        'avg_performance': report['avg_performance'],
+        'avg_stress': report['avg_stress'],
+        'maintenance_estimate': report['maintenance_estimate'],
+        'summary_text': report['summary_text']
+    }
+    
+    supabase_admin.table('monthly_reports').upsert(report_data, on_conflict='user_id,month_start').execute()
+    
+    return jsonify({'success': True, 'year': year, 'month': month, 'metrics': metrics_data, 'report': report_data})
+
+
 # ============ ADVANCED METRICS WITH DEFAULTS ============
 
 @reports_bp.route('/advanced-metrics', methods=['GET'])
@@ -323,4 +404,27 @@ def generate_notifications():
     return jsonify({
         'notifications_created': notifications_created,
         'message': f'Generated {len(notifications_created)} notification(s)'
+    })
+
+
+# ============ SMART TREND NOTIFICATIONS ============
+
+@reports_bp.route('/trend-checks', methods=['POST'])
+def run_trend_checks():
+    """Run smart trend checks and create notifications"""
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    from ..services.trend_engine import TrendEngine
+    
+    async def run_checks():
+        engine = TrendEngine(user_id)
+        return await engine.create_notifications_from_trends()
+    
+    result = asyncio.run(run_checks())
+    
+    return jsonify({
+        'success': True,
+        'result': result
     })

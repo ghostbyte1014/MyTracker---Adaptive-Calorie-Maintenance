@@ -6,6 +6,7 @@ from supabase import create_client, Client
 from ..config import settings
 from ..database import supabase_admin
 from ..services.calculations import CalculationEngine
+from ..services.trend_engine import TrendEngine
 import asyncio
 
 daily_logs_bp = Blueprint('daily_logs', __name__)
@@ -136,6 +137,14 @@ def create_daily_log():
             'current_weight': data.get('bodyweight')
         }).eq('user_id', user_id).execute()
     
+    # Trigger streak recalculation after log insert
+    engine = CalculationEngine(user_id)
+    asyncio.run(engine.update_streak())
+    
+    # Run trend checks and create notifications
+    trend_engine = TrendEngine(user_id)
+    asyncio.run(trend_engine.create_notifications_from_trends())
+    
     return jsonify(updated_response.data[0])
 
 
@@ -160,30 +169,6 @@ def update_daily_log(log_id):
     
     # Get current log data for calculations
     current = supabase_admin.table('daily_logs').select('*').eq('id', log_id).execute()
-    current_data = current.data[0] if current.data else {}
-    
-    # Merge with update data first
-    merged_data = {**current_data, **data}
-    
-    # Update with the merged data first
-    response = supabase_admin.table('daily_logs').update(
-        data
-    ).eq('id', log_id).execute()
-    
-    if not response.data:
-        return jsonify({"detail": "Failed to update log"}), 400
-    
-    # Now recalculate metrics AFTER update (so rolling avg includes updated data)
-    engine = CalculationEngine(user_id)
-    calculated = asyncio.run(engine.calculate_daily_metrics(merged_data, target_date))
-    
-    # Update with calculated metrics
-    supabase_admin.table('daily_logs').update(calculated).eq('id', log_id).execute()
-    
-    # Get the updated log to return
-    updated_response = supabase_admin.table('daily_logs').select('*').eq('id', log_id).execute()
-    
-    return jsonify(updated_response.data[0])
 
 
 @daily_logs_bp.route('/<log_id>', methods=['DELETE'])
@@ -202,6 +187,10 @@ def delete_daily_log(log_id):
         return jsonify({"detail": "Log not found"}), 404
     
     supabase_admin.table('daily_logs').delete().eq('id', log_id).execute()
+    
+    # Trigger streak recalculation after log delete
+    engine = CalculationEngine(user_id)
+    asyncio.run(engine.update_streak())
     
     return jsonify({"message": "Log deleted successfully"})
 

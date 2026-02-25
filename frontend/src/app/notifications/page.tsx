@@ -62,12 +62,30 @@ export default function NotificationsPage() {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (notification: Notification) => {
+    const type = notification.type;
+    const severity = notification.severity;
+    const category = notification.category;
+    
+    // Smart Coach trend notifications
+    if (type === 'trend') {
+      switch (category) {
+        case 'weight':
+          return <TrendingUp className="w-5 h-5 text-yellow-400" />;
+        case 'recovery':
+          return <TrendingDown className="w-5 h-5 text-red-400" />;
+        case 'performance':
+          return <Flame className="w-5 h-5 text-red-400" />;
+        default:
+          return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
+      }
+    }
+    
     switch (type) {
       case 'drift_warning':
         return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
       case 'high_fatigue':
-        return <Flame className="w-5 h-5 text-power-400" />;
+        return <Flame className="w-5 h-5 text-orange-400" />;
       case 'weight_milestone':
         return <TrendingUp className="w-5 h-5 text-gold-400" />;
       case 'milestone':
@@ -77,14 +95,29 @@ export default function NotificationsPage() {
     }
   };
 
-  const getNotificationColor = (type: string, isRead: boolean) => {
+  const getNotificationColor = (notification: Notification) => {
+    const type = notification.type;
+    const severity = notification.severity;
+    const isRead = notification.is_read;
+    
     if (isRead) return 'bg-dark-200 border-dark-300';
+    
+    // Smart Coach trend notifications - severity based
+    if (type === 'trend') {
+      if (severity === 'high') {
+        return 'bg-red-900/20 border-red-700/50';
+      } else if (severity === 'medium') {
+        return 'bg-yellow-900/20 border-yellow-700/50';
+      } else {
+        return 'bg-blue-900/20 border-blue-700/50';
+      }
+    }
     
     switch (type) {
       case 'drift_warning':
         return 'bg-yellow-900/20 border-yellow-700/50';
       case 'high_fatigue':
-        return 'bg-power-900/20 border-power-700/50';
+        return 'bg-orange-900/20 border-orange-700/50';
       case 'weight_milestone':
       case 'milestone':
         return 'bg-gold-900/20 border-gold-700/50';
@@ -93,15 +126,33 @@ export default function NotificationsPage() {
     }
   };
 
-  const getTypeLabel = (type: string) => {
+  const getTypeLabel = (notification: Notification) => {
+    const type = notification.type;
+    const category = notification.category;
+    const severity = notification.severity;
+    
+    // Smart Coach trend notifications
+    if (type === 'trend') {
+      const severityLabel = severity ? severity.toUpperCase() : '';
+      const categoryLabel = category ? category.toUpperCase() : 'TREND';
+      return `${severityLabel} ${categoryLabel}`.trim();
+    }
+    
     switch (type) {
       case 'drift_warning':
         return 'DRIFT WARNING';
       case 'high_fatigue':
         return 'HIGH FATIGUE';
       case 'weight_milestone':
+        return 'WEIGHT MILESTONE';
       case 'milestone':
-        return 'MILESTONE';
+        return 'STREAK MILESTONE';
+      case 'weekly_report':
+        return 'WEEKLY REPORT';
+      case 'monthly_report':
+        return 'MONTHLY REPORT';
+      case 'reminder':
+        return 'REMINDER';
       default:
         return 'NOTIFICATION';
     }
@@ -204,78 +255,86 @@ export default function NotificationsPage() {
           </Button>
         </div>
 
-        {/* Notifications List */}
-        {notifications.length === 0 ? (
-          <Card className="bg-dark-100 border-dark-200">
-            <CardContent className="py-16 text-center">
-              <BellOff className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-              <p className="text-gray-400 text-lg font-medium">
-                {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
-              </p>
-              <p className="text-gray-500 text-sm mt-2">
-                {filter === 'unread' 
-                  ? 'You\'re all caught up!' 
-                  : 'Notifications will appear when we detect important changes in your metrics'
-                }
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {notifications.map((notification) => (
-              <Card 
-                key={notification.id}
-                className={`${getNotificationColor(notification.type, notification.is_read)} border transition-all hover:scale-[1.01]`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      notification.is_read ? 'bg-dark-300' : 'bg-gold-900/30'
-                    }`}>
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="warning" className="text-xs bg-yellow-900/50 text-yellow-400 border-yellow-700">
-                          {getTypeLabel(notification.type)}
-                        </Badge>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(notification.created_at)}
-                        </span>
-                      </div>
-                      <h3 className={`font-bold ${notification.is_read ? 'text-gray-300' : 'text-white'}`}>
-                        {notification.title}
-                      </h3>
-                      {notification.message && (
-                        <p className="text-sm text-gray-400 mt-1 line-clamp-2">
-                          {notification.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {!notification.is_read && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="text-gray-400 hover:text-gold-400 hover:bg-dark-300"
-                          title="Mark as read"
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+        {/* Notifications List - sorted by newest first */}
+        {(() => {
+          const sortedNotifications = [...notifications].sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          if (sortedNotifications.length === 0) {
+            return (
+              <Card className="bg-dark-100 border-dark-200">
+                <CardContent className="py-16 text-center">
+                  <BellOff className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                  <p className="text-gray-400 text-lg font-medium">
+                    {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    {filter === 'unread' 
+                      ? 'You\'re all caught up!' 
+                      : 'Notifications will appear when we detect important changes in your metrics'
+                    }
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            );
+          }
+          return (
+            <div className="space-y-3">
+              {sortedNotifications.map((notification) => (
+                <Card 
+                  key={notification.id}
+                  className={`${getNotificationColor(notification)} border transition-all hover:scale-[1.01]`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      {/* Icon */}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                        notification.is_read ? 'bg-dark-300' : 'bg-gold-900/30'
+                      }`}>
+                        {getNotificationIcon(notification)}
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="warning" className="text-xs bg-yellow-900/50 text-yellow-400 border-yellow-700">
+                            {getTypeLabel(notification)}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {formatDate(notification.created_at)}
+                          </span>
+                        </div>
+                        <h3 className={`font-bold ${notification.is_read ? 'text-gray-300' : 'text-white'}`}>
+                          {notification.title}
+                        </h3>
+                        {notification.message && (
+                          <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                            {notification.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!notification.is_read && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            className="text-gray-400 hover:text-gold-400 hover:bg-dark-300"
+                            title="Mark as read"
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Info Card */}
         <Card className="mt-8 bg-dark-100 border-dark-200">

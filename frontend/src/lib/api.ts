@@ -265,6 +265,27 @@ class ApiClient {
   async generateNotifications(): Promise<any> {
     return this.request('/reports/generate-notifications', { method: 'POST' });
   }
+
+  // Smart Trend Notifications
+  async runTrendChecks(): Promise<any> {
+    return this.request('/reports/trend-checks', { method: 'POST' });
+  }
+
+  // Weekly Metrics by ISO Week (YYYY-WW format)
+  async getMetricsByIsoWeek(week: string): Promise<SystemMetrics> {
+    return this.request<SystemMetrics>(`/system-metrics/week?week=${week}`);
+  }
+
+  // Monthly Metrics Calculation
+  async calculateMonthlyMetrics(year?: number, month?: number): Promise<any> {
+    const body: { year?: number; month?: number } = {};
+    if (year) body.year = year;
+    if (month) body.month = month;
+    return this.request('/reports/calculate-monthly-metrics', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
 }
 
 export const api = new ApiClient();

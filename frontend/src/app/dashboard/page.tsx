@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { FloatingActionBar } from '@/components/ui/FloatingActionBar';
+import { Signature } from '@/components/ui/Signature';
 import { WeightChart } from '@/components/charts/WeightChart';
 import { CaloriesChart } from '@/components/charts/CaloriesChart';
 import { PerformanceChart } from '@/components/charts/PerformanceChart';
@@ -200,7 +203,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+        {/* Row 1: 7-Day Avg, Target, Maintenance, Weekly Adjustment */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <Card className="stat-card stat-card-gold">
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-gold-400 mb-2">
@@ -220,18 +224,6 @@ export default function DashboardPage() {
                   </span>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card className="stat-card stat-card-steel">
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 text-steel-400 mb-2">
-                <Activity className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest text-steel-500/70">Status</span>
-              </div>
-              <Badge variant={getDriftBadgeVariant(latestMetrics?.drift_status || 'STABLE')} className="mt-1 bg-gold-900/50 text-gold-400 border-gold-700">
-                {latestMetrics?.drift_status || 'STABLE'}
-              </Badge>
             </CardContent>
           </Card>
 
@@ -270,6 +262,21 @@ export default function DashboardPage() {
               <p className={`text-2xl font-bold ${(latestMetrics?.calorie_adjustment || 0) >= 0 ? 'text-gold-400' : 'text-power-400'}`}>
                 {(latestMetrics?.calorie_adjustment || 0) >= 0 ? '+' : ''}{latestMetrics?.calorie_adjustment || 0}
               </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Row 2: Status, Performance Correlation, Fatigue Risk, Streak */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="stat-card stat-card-steel">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-steel-400 mb-2">
+                <Activity className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest text-steel-500/70">Status</span>
+              </div>
+              <Badge variant={getDriftBadgeVariant(latestMetrics?.drift_status || 'STABLE')} className="mt-1 bg-gold-900/50 text-gold-400 border-gold-700">
+                {latestMetrics?.drift_status || 'STABLE'}
+              </Badge>
             </CardContent>
           </Card>
 
@@ -436,68 +443,10 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        <Card className="shadow-2xl border border-dark-300 bg-dark-100">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-600 to-gold-700 flex items-center justify-center glow-gold">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <CardTitle className="text-xl font-bold text-white tracking-wide">QUICK ACTIONS</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                onClick={() => router.push('/daily-log')}
-                className="btn-primary"
-              >
-                <Target className="w-4 h-4 mr-2" />
-                LOG TODAY'S METRICS
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => router.push('/weekly-summary')}
-                className="border-gold-700 text-gold-400 hover:bg-gold-900/30"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                WEEKLY SUMMARY
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/profile')}
-                className="border-steel-600 text-steel-400 hover:bg-steel-800/30"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                PROFILE
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/history')}
-                className="border-gold-700 text-gold-400 hover:bg-gold-900/30"
-              >
-                <History className="w-4 h-4 mr-2" />
-                VIEW HISTORY
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/monthly-metrics')}
-                className="border-gold-700 text-gold-400 hover:bg-gold-900/30"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                MONTHLY METRICS
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/notifications')}
-                className="border-gold-700 text-gold-400 hover:bg-gold-900/30"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                NOTIFICATIONS
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
+
+      {/* Floating Bottom Quick Actions Bar */}
+      <FloatingActionBar />
     </div>
   );
 }

@@ -237,3 +237,44 @@ def get_all_advanced_metrics():
         "recovery_performance_consistency": recovery_perf,
         "stress_resilience": stress_resilience
     })
+
+
+@system_metrics_bp.route('/week', methods=['GET'])
+def get_metrics_by_iso_week():
+    """Get system metrics for ISO week format (YYYY-WW). Query: ?week=2024-01"""
+    user_id, error_response, status_code = get_user_from_token()
+    if error_response:
+        return error_response
+    
+    week_param = request.args.get('week')
+    if not week_param:
+        return jsonify({"detail": "Week parameter required (format: YYYY-WW)"}), 400
+    
+    try:
+        parts = week_param.split('-')
+        if len(parts) != 2:
+            return jsonify({"detail": "Invalid format. Use YYYY-WW (e.g., 2024-01)"}), 400
+        
+        year, week_number = int(parts[0]), int(parts[1])
+        from datetime import timedelta
+        jan_4 = date(year, 1, 4)
+        week_1_start = jan_4 - timedelta(days=jan_4.weekday())
+        target_monday = week_1_start + timedelta(weeks=week_number - 1)
+        
+        existing = supabase_admin.table('system_metrics').select('*').eq('user_id', user_id).eq('week_start', target_monday.isoformat()).execute()
+        if existing.data:
+            return jsonify(existing.data[0])
+        
+        engine = CalculationEngine(user_id)
+        metrics = asyncio.run(engine.run_weekly_calculations(target_monday))
+        metrics['weight_volatility'] = asyncio.run(engine.get_weight_volatility(7))
+        
+        prev_week = target_monday - timedelta(days=7)
+        prev = supabase_admin.table('system_metrics').select('weight_volatility').eq('user_id', user_id).eq('week_start', prev_week.isoformat()).execute()
+        metrics['prev_weight_volatility'] = prev.data[0]['weight_volatility'] if prev.data else None
+        
+        metrics['user_id'] = user_id
+        supabase_admin.table('system_metrics').insert(metrics).execute()
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({"detail": f"Error: {str(e)}"}), 500
