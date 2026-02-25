@@ -11,6 +11,7 @@ import { Signature } from '@/components/ui/Signature';
 import { WeightChart } from '@/components/charts/WeightChart';
 import { CaloriesChart } from '@/components/charts/CaloriesChart';
 import { PerformanceChart } from '@/components/charts/PerformanceChart';
+import { MacrosTrendChart } from '@/components/charts/MacrosTrendChart';
 import { api } from '@/lib/api';
 import { DailyLog, SystemMetrics, AdvancedMetrics, UserSettings } from '@/types';
 import { formatNumber, formatCalories } from '@/lib/utils';
@@ -395,6 +396,30 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        <Card className="mb-8 card-hover">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-500 to-power-500 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-white" />
+              </div>
+              <CardTitle className="text-lg font-bold text-white tracking-wide">MACROS TREND (LAST 30 DAYS)</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {dailyLogs.length > 0 ? (
+              <MacrosTrendChart data={dailyLogs} />
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-gray-400">No data yet - start grinding!</p>
+                  <p className="text-sm text-gray-600">Log your macros to see trends</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {showAdvanced && (
           <Card className="mb-8 shadow-2xl border border-gold-700/30 bg-dark-100">
             <CardHeader className="pb-2">
@@ -450,3 +475,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
